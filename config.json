@@ -1,0 +1,23 @@
+{
+  "price_min": 80000,
+  "price_max": 130000,
+  "years": [2015, 2023],
+  "trims": [
+    "Carrera GTS Coupe AWD",
+    "Carrera GTS Coupe RWD",
+    "Turbo Coupe AWD",
+    "Turbo S Coupe AWD",
+    "Carrera 4 GTS Coupe AWD",
+    "Carrera S Turbo Coupe RWD",
+    "Carrera Turbo Coupe",
+    "Carrera Turbo Coupe RWD",
+    "Turbo",
+    "Turbo Coupe"
+  ],
+  "features": ["sunroof", "moonroof", "leather seats"],
+  "colors": ["red", "silver", "grey", "white", "unknown"],
+  "clean_title": true,
+  "accident_free": true,
+  "discord_webhook_url": "YOUR_DISCORD_WEBHOOK_URL",
+  "discord_bot_token": "YOUR_DISCORD_BOT_TOKEN"
+}
