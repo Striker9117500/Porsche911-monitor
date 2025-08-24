@@ -3,9 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <title>Porsche 911 Monitor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1, h2 {
+            margin-bottom: 10px;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            margin: 5px 0;
+        }
+        .logs {
+            margin-top: 30px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background: #f9f9f9;
+        }
+        button {
+            margin-bottom: 15px;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+    </style>
+    <script>
+        async function manualScrape() {
+            const btn = document.getElementById("scrapeBtn");
+            btn.disabled = true;
+            btn.innerText = "Scraping...";
+            try {
+                const response = await fetch("/scrape");
+                const result = await response.json();
+                alert("Scrape Result: " + result.status);
+                location.reload(); // reload to show updated listings + logs
+            } catch (err) {
+                alert("Error running scrape: " + err);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Run Manual Scrape";
+            }
+        }
+    </script>
 </head>
 <body>
-    <h1>Live Porsche 911 Listings</h1>
+    <h1>🚗 Live Porsche 911 Listings</h1>
+
     {% if cars %}
         <ul>
         {% for car in cars %}
@@ -18,5 +64,15 @@
     {% else %}
         <p>No listings yet.</p>
     {% endif %}
+
+    <div class="logs">
+        <h2>📜 Scrape Logs</h2>
+        <button id="scrapeBtn" onclick="manualScrape()">Run Manual Scrape</button>
+        <ul>
+        {% for log in logs %}
+            <li>[{{ log.time }}] ({{ log.type }}) → {{ log.status }}</li>
+        {% endfor %}
+        </ul>
+    </div>
 </body>
 </html>
