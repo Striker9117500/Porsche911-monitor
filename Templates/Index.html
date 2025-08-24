@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Porsche 911 Monitor</title>
+</head>
+<body>
+  <h1>Porsche 911 Listings</h1>
+  <ul>
+    {% for car in cars %}
+      <li>{{ car['title'] }} - ${{ car['price'] }}</li>
+    {% endfor %}
+  </ul>
+</body>
+</html>
