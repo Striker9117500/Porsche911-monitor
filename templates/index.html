@@ -4,50 +4,19 @@
     <meta charset="UTF-8">
     <title>Porsche 911 Monitor</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        h1, h2 {
-            margin-bottom: 10px;
-        }
-        ul {
-            list-style: none;
-            padding: 0;
-        }
-        li {
-            margin: 5px 0;
-        }
-        .logs {
-            margin-top: 30px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            background: #f9f9f9;
-        }
-        button {
-            margin-bottom: 15px;
-            padding: 8px 12px;
-            cursor: pointer;
-        }
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 6px; }
+        .logs { margin-top: 30px; padding: 15px; border: 1px solid #ddd; background: #f9f9f9; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 8px; border: 1px solid #ccc; text-align: left; }
+        th { background: #eee; }
+        .success { color: green; }
+        .warning { color: orange; }
+        .error { color: red; }
+        button { margin-top: 15px; padding: 10px 15px; font-size: 14px; cursor: pointer; }
     </style>
-    <script>
-        async function manualScrape() {
-            const btn = document.getElementById("scrapeBtn");
-            btn.disabled = true;
-            btn.innerText = "Scraping...";
-            try {
-                const response = await fetch("/scrape");
-                const result = await response.json();
-                alert("Scrape Result: " + result.status);
-                location.reload(); // reload to show updated listings + logs
-            } catch (err) {
-                alert("Error running scrape: " + err);
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Run Manual Scrape";
-            }
-        }
-    </script>
 </head>
 <body>
     <h1>🚗 Live Porsche 911 Listings</h1>
@@ -65,14 +34,50 @@
         <p>No listings yet.</p>
     {% endif %}
 
+    <button onclick="manualScrape()">🔄 Scrape Now</button>
+
     <div class="logs">
-        <h2>📜 Scrape Logs</h2>
-        <button id="scrapeBtn" onclick="manualScrape()">Run Manual Scrape</button>
-        <ul>
-        {% for log in logs %}
-            <li>[{{ log.time }}] ({{ log.type }}) → {{ log.status }}</li>
-        {% endfor %}
-        </ul>
+        <h2>📜 Scrape Logs (last 10)</h2>
+        {% if logs %}
+            <table>
+                <tr>
+                    <th>Time</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                </tr>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.time }}</td>
+                    <td>{{ log.type }}</td>
+                    <td>
+                        {% if "✅" in log.status %}
+                            <span class="success">{{ log.status }}</span>
+                        {% elif "⚠️" in log.status %}
+                            <span class="warning">{{ log.status }}</span>
+                        {% elif "❌" in log.status %}
+                            <span class="error">{{ log.status }}</span>
+                        {% else %}
+                            {{ log.status }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        {% else %}
+            <p>No logs yet.</p>
+        {% endif %}
     </div>
+
+    <script>
+        function manualScrape() {
+            fetch("/scrape")
+                .then(res => res.json())
+                .then(data => {
+                    alert("Scrape finished: " + data.status);
+                    location.reload();  // refresh page to show new cars + logs
+                })
+                .catch(err => alert("Error: " + err));
+        }
+    </script>
 </body>
 </html>
