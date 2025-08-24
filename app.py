@@ -4,6 +4,8 @@ from threading import Thread
 import time
 
 app = Flask(__name__)
+
+# Store current cars + scrape history
 data_store = {"cars": []}
 scrape_logs = []  # keep track of scrape history
 
@@ -19,9 +21,11 @@ def index():
         logs=scrape_logs[-10:]  # show only last 10 logs
     )
 
+
 @app.route("/api/cars")
 def api_cars():
     return jsonify({"cars": data_store["cars"]})
+
 
 @app.route("/scrape")
 def manual_scrape():
@@ -72,6 +76,7 @@ def background_scraper():
 # App Entry Point
 # -------------------------------
 if __name__ == "__main__":
+    # Start background scraper thread
     Thread(target=background_scraper, daemon=True).start()
     print("🚀 Flask app running at http://0.0.0.0:5000")
     app.run(host="0.0.0.0", port=5000)
