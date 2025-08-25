@@ -1,16 +1,13 @@
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+import time
 import requests
-from bs4 import BeautifulSoup
 from twilio.rest import Client
 
 # -------------------------------
 # Config
 # -------------------------------
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                  "AppleWebKit/537.36 (KHTML, like Gecko) "
-                  "Chrome/127.0.0.0 Safari/537.36"
-}
-
 DISCORD_WEBHOOK = "YOUR_WEBHOOK_HERE"
 
 URL = "https://www.cars.com/shopping/results/?makes[]=porsche&models[]=porsche-911&stock_type=used&list_price_min=80000&list_price_max=130000&year_min=2015&year_max=2023"
@@ -26,48 +23,66 @@ TRIMS = {
     "Carrera Turbo Coupe",
     "Carrera Turbo Coupe RWD",
     "Turbo",
+    "Turbo S",
+    "Carrera GTS",
+    "Carrera 4 GTS",
     "Turbo Coupe",
 }
 FEATURES = {"Sunroof / Moonroof", "Leather Seats"}
 COLORS = {"Red", "Silver", "Grey", "White", "Unknown"}
+
+# -------------------------------
+# Selenium Browser Setup (persistent session)
+# -------------------------------
+chrome_options = Options()
+chrome_options.add_argument("--headless=new")  # headless mode
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+
+# Keep this driver alive for the entire Flask app
+driver = webdriver.Chrome(options=chrome_options)
 
 
 # -------------------------------
 # Scraper
 # -------------------------------
 def run_scraper():
-    resp = requests.get(URL, headers=HEADERS)
-    print("Status Code:", resp.status_code)
+    driver.get(URL)
+    time.sleep(5)  # wait for JS to render
 
-    soup = BeautifulSoup(resp.text, "html.parser")
     listings = []
+    cars = driver.find_elements(By.CSS_SELECTOR, "div.vehicle-card")
 
-    for card in soup.select(".vehicle-card"):
-        title = card.select_one(".title")
-        price = card.select_one(".primary-price")
+    for car in cars:
+        try:
+            title = car.find_element(By.CSS_SELECTOR, "h2.title").text
+            price = car.find_element(By.CSS_SELECTOR, "span.primary-price").text
+            details = car.text  # grab all text from the card
 
-        title_text = title.get_text(strip=True) if title else "N/A"
-        price_text = price.get_text(strip=True) if price else "N/A"
+            # Basic filters
+            if not any(trim in title for trim in TRIMS):
+                continue
+            if not any(feature in details for feature in FEATURES):
+                continue
+            if not any(color in details for color in COLORS):
+                continue
 
-        # Extract details text (features, color, trim etc)
-        details = " ".join(d.get_text(strip=True) for d in card.select(".listing-row__details span"))
+            link = car.find_element(By.CSS_SELECTOR, "a.vehicle-card-link").get_attribute("href")
+            image_el = car.find_element(By.CSS_SELECTOR, "img")
+            image = image_el.get_attribute("src") if image_el else ""
 
-        # Basic filters
-        if not any(trim in title_text for trim in TRIMS):
+            listings.append({
+                "title": title,
+                "price": price,
+                "link": link,
+                "image": image,
+                "details": details
+            })
+
+        except Exception:
             continue
-        if not any(feature in details for feature in FEATURES):
-            continue
-        if not any(color in details for color in COLORS):
-            continue
 
-        listings.append({
-            "title": title_text,
-            "price": price_text,
-            "link": "https://www.cars.com" + card.a["href"] if card.a else "",
-            "image": card.select_one("img")["src"] if card.select_one("img") else "",
-            "details": details
-        })
-
+    print(f"✅ Found {len(listings)} matching listings")
     return listings
 
 
