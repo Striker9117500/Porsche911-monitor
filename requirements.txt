@@ -3,3 +3,4 @@ requests
 gunicorn
 discord.py
 beautifulsoup4
+twilio
