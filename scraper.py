@@ -10,22 +10,35 @@ HEADERS = {
                   "Chrome/127.0.0.0 Safari/537.36"
 }
 
-DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1409010823287803945/2hXaZsB5zlfhCEZouu4YOIoAnpEjoJ5PaH4e6fntbQY1TgZFvtogA5tnGwX84BNJn-6f"  # <-- paste your webhook URL here
+DISCORD_WEBHOOK = "YOUR_WEBHOOK_HERE"
+
+URL = "https://www.cars.com/shopping/results/?makes[]=porsche&models[]=porsche-911&stock_type=used&list_price_min=80000&list_price_max=130000&year_min=2015&year_max=2023"
+
+# Your filters
+TRIMS = {
+    "Carrera GTS Coupe AWD",
+    "Carrera GTS Coupe RWD",
+    "Turbo Coupe AWD",
+    "Turbo S Coupe AWD",
+    "Carrera 4 GTS Coupe AWD",
+    "Carrera S Turbo Coupe RWD",
+    "Carrera Turbo Coupe",
+    "Carrera Turbo Coupe RWD",
+    "Turbo",
+    "Turbo Coupe",
+}
+FEATURES = {"Sunroof / Moonroof", "Leather Seats"}
+COLORS = {"Red", "Silver", "Grey", "White", "Unknown"}
+
 
 # -------------------------------
 # Scraper
 # -------------------------------
 def run_scraper():
-    url = "https://www.cars.com/shopping/results/?makes[]=porsche&models[]=porsche-911&stock_type=used"
-    resp = requests.get(url, headers=HEADERS)
-
+    resp = requests.get(URL, headers=HEADERS)
     print("Status Code:", resp.status_code)
 
-    # Print first 1000 chars of HTML so we can confirm we got the page
-    print(resp.text[:1000])
-
     soup = BeautifulSoup(resp.text, "html.parser")
-
     listings = []
 
     for card in soup.select(".vehicle-card"):
@@ -35,22 +48,32 @@ def run_scraper():
         title_text = title.get_text(strip=True) if title else "N/A"
         price_text = price.get_text(strip=True) if price else "N/A"
 
-        print("Found car:", title_text, "|", price_text)
+        # Extract details text (features, color, trim etc)
+        details = " ".join(d.get_text(strip=True) for d in card.select(".listing-row__details span"))
+
+        # Basic filters
+        if not any(trim in title_text for trim in TRIMS):
+            continue
+        if not any(feature in details for feature in FEATURES):
+            continue
+        if not any(color in details for color in COLORS):
+            continue
 
         listings.append({
             "title": title_text,
             "price": price_text,
             "link": "https://www.cars.com" + card.a["href"] if card.a else "",
-            "image": card.select_one("img")["src"] if card.select_one("img") else ""
+            "image": card.select_one("img")["src"] if card.select_one("img") else "",
+            "details": details
         })
 
     return listings
+
 
 # -------------------------------
 # Discord
 # -------------------------------
 def send_to_discord(listings):
-    """Send filtered listings to Discord webhook"""
     if not listings:
         print("No new listings to send.")
         return
@@ -60,7 +83,7 @@ def send_to_discord(listings):
             "embeds": [{
                 "title": car.get("title", "Porsche 911 Listing"),
                 "url": car.get("link", ""),
-                "description": f"Price: {car.get('price', 'N/A')}",
+                "description": f"Price: {car.get('price', 'N/A')}\nDetails: {car.get('details', '')}",
                 "image": {"url": car.get("image", "")}
             }]
         }
