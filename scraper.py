@@ -174,15 +174,55 @@ def scrape_autotempest(driver):
 def run_all_scrapers():
     driver = get_driver()
     all_listings = []
+    health_log = {}
 
     try:
-        all_listings.extend(scrape_cars_com(driver))
-        all_listings.extend(scrape_autotrader(driver))
-        all_listings.extend(scrape_cargurus(driver))
-        all_listings.extend(scrape_carmax(driver))
-        all_listings.extend(scrape_autotempest(driver))
+        try:
+            cars_com = scrape_cars_com(driver)
+            all_listings.extend(cars_com)
+            health_log["Cars.com"] = f"✅ {len(cars_com)} listings"
+        except Exception as e:
+            health_log["Cars.com"] = f"❌ {e}"
+
+        try:
+            autotrader = scrape_autotrader(driver)
+            all_listings.extend(autotrader)
+            health_log["Autotrader"] = f"✅ {len(autotrader)} listings"
+        except Exception as e:
+            health_log["Autotrader"] = f"❌ {e}"
+
+        try:
+            cargurus = scrape_cargurus(driver)
+            all_listings.extend(cargurus)
+            health_log["CarGurus"] = f"✅ {len(cargurus)} listings"
+        except Exception as e:
+            health_log["CarGurus"] = f"❌ {e}"
+
+        try:
+            carmax = scrape_carmax(driver)
+            all_listings.extend(carmax)
+            health_log["CarMax"] = f"✅ {len(carmax)} listings"
+        except Exception as e:
+            health_log["CarMax"] = f"❌ {e}"
+
+        try:
+            autotempest = scrape_autotempest(driver)
+            all_listings.extend(autotempest)
+            health_log["AutoTempest"] = f"✅ {len(autotempest)} listings"
+        except Exception as e:
+            health_log["AutoTempest"] = f"❌ {e}"
+
     finally:
         driver.quit()
+
+    # Deduplicate by link
+    unique = {}
+    for car in all_listings:
+        if car["link"] not in unique:
+            unique[car["link"]] = car
+
+    return list(unique.values()), health_log
+
 
     # Deduplicate by link
     unique = {}
