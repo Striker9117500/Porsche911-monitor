@@ -1,7 +1,7 @@
+import time
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-import time
+from bs4 import BeautifulSoup
 import requests
 from twilio.rest import Client
 
@@ -10,9 +10,6 @@ from twilio.rest import Client
 # -------------------------------
 DISCORD_WEBHOOK = "YOUR_WEBHOOK_HERE"
 
-URL = "https://www.cars.com/shopping/results/?makes[]=porsche&models[]=porsche-911&stock_type=used&list_price_min=80000&list_price_max=130000&year_min=2015&year_max=2023"
-
-# Your filters
 TRIMS = {
     "Carrera GTS Coupe AWD",
     "Carrera GTS Coupe RWD",
@@ -22,78 +19,160 @@ TRIMS = {
     "Carrera S Turbo Coupe RWD",
     "Carrera Turbo Coupe",
     "Carrera Turbo Coupe RWD",
-    "Turbo",
-    "Turbo S",
     "Carrera GTS",
     "Carrera 4 GTS",
+    "Turbo S",
+    "Turbo",
     "Turbo Coupe",
 }
 FEATURES = {"Sunroof / Moonroof", "Leather Seats"}
 COLORS = {"Red", "Silver", "Grey", "White", "Unknown"}
 
 # -------------------------------
-# Selenium Browser Setup (persistent session)
+# Selenium Setup
 # -------------------------------
-chrome_options = Options()
-chrome_options.add_argument("--headless=new")  # headless mode
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--disable-dev-shm-usage")
-
-# Keep this driver alive for the entire Flask app
-driver = webdriver.Chrome(options=chrome_options)
-
+def get_driver():
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--no-sandbox")
+    driver = webdriver.Chrome(options=chrome_options)
+    return driver
 
 # -------------------------------
-# Scraper
+# Site Scrapers
 # -------------------------------
-def run_scraper():
-    driver.get(URL)
-    time.sleep(5)  # wait for JS to render
+def scrape_cars():
+    url = "https://www.cars.com/shopping/results/?makes[]=porsche&models[]=porsche-911&stock_type=used&list_price_min=80000&list_price_max=130000&year_min=2015&year_max=2023"
+    driver = get_driver()
+    driver.get(url)
+    time.sleep(5)
+    soup = BeautifulSoup(driver.page_source, "html.parser")
+    driver.quit()
 
     listings = []
-    cars = driver.find_elements(By.CSS_SELECTOR, "div.vehicle-card")
+    for card in soup.select(".vehicle-card"):
+        title = card.select_one(".title")
+        price = card.select_one(".primary-price")
+        title_text = title.get_text(strip=True) if title else "N/A"
+        price_text = price.get_text(strip=True) if price else "N/A"
+        details = " ".join(d.get_text(strip=True) for d in card.select(".listing-row__details span"))
 
-    for car in cars:
-        try:
-            title = car.find_element(By.CSS_SELECTOR, "h2.title").text
-            price = car.find_element(By.CSS_SELECTOR, "span.primary-price").text
-            details = car.text  # grab all text from the card
+        if not any(trim in title_text for trim in TRIMS): continue
+        if not any(feature in details for feature in FEATURES): continue
+        if not any(color in details for color in COLORS): continue
 
-            # Basic filters
-            if not any(trim in title for trim in TRIMS):
-                continue
-            if not any(feature in details for feature in FEATURES):
-                continue
-            if not any(color in details for color in COLORS):
-                continue
-
-            link = car.find_element(By.CSS_SELECTOR, "a.vehicle-card-link").get_attribute("href")
-            image_el = car.find_element(By.CSS_SELECTOR, "img")
-            image = image_el.get_attribute("src") if image_el else ""
-
-            listings.append({
-                "title": title,
-                "price": price,
-                "link": link,
-                "image": image,
-                "details": details
-            })
-
-        except Exception:
-            continue
-
-    print(f"✅ Found {len(listings)} matching listings")
+        listings.append({
+            "title": title_text,
+            "price": price_text,
+            "link": "https://www.cars.com" + card.a["href"] if card.a else "",
+            "image": card.select_one("img")["src"] if card.select_one("img") else "",
+            "details": details
+        })
     return listings
 
+def scrape_autotrader():
+    url = "https://www.autotrader.com/cars-for-sale/porsche/911?dma=&searchRadius=0&location=&startYear=2015&endYear=2023&priceRange=80000-130000"
+    driver = get_driver()
+    driver.get(url)
+    time.sleep(5)
+    soup = BeautifulSoup(driver.page_source, "html.parser")
+    driver.quit()
+
+    listings = []
+    for card in soup.select("div.inventory-listing"):
+        title = card.select_one("h2")
+        price = card.select_one(".first-price")
+        title_text = title.get_text(strip=True) if title else "N/A"
+        price_text = price.get_text(strip=True) if price else "N/A"
+
+        details = " ".join(d.get_text(strip=True) for d in card.select(".text-gray-base"))
+
+        if not any(trim in title_text for trim in TRIMS): continue
+        if not any(color in details for color in COLORS): continue
+
+        listings.append({
+            "title": title_text,
+            "price": price_text,
+            "link": card.a["href"] if card.a else "",
+            "image": card.select_one("img")["src"] if card.select_one("img") else "",
+            "details": details
+        })
+    return listings
+
+def scrape_cargurus():
+    url = "https://www.cargurus.com/Cars/inventorylisting/viewDetailsFilterViewInventoryListing.action?zip=85001&showNegotiable=true&sortDir=ASC&sourceContext=carGurusHomePageModel&distance=50000&entitySelectingHelper.selectedEntity=d404"
+    driver = get_driver()
+    driver.get(url)
+    time.sleep(5)
+    soup = BeautifulSoup(driver.page_source, "html.parser")
+    driver.quit()
+
+    listings = []
+    for card in soup.select(".cg-listingCard"):
+        title = card.select_one("h4")
+        price = card.select_one(".cg-dealFinder-priceAndMoPayment")
+        title_text = title.get_text(strip=True) if title else "N/A"
+        price_text = price.get_text(strip=True) if price else "N/A"
+        details = " ".join(d.get_text(strip=True) for d in card.select("li"))
+
+        if not any(trim in title_text for trim in TRIMS): continue
+        if not any(color in details for color in COLORS): continue
+
+        listings.append({
+            "title": title_text,
+            "price": price_text,
+            "link": "https://www.cargurus.com" + card.a["href"] if card.a else "",
+            "image": card.select_one("img")["src"] if card.select_one("img") else "",
+            "details": details
+        })
+    return listings
+
+def scrape_carmax():
+    url = "https://www.carmax.com/cars/porsche/911?price=80000-130000&year=2015-2023"
+    driver = get_driver()
+    driver.get(url)
+    time.sleep(5)
+    soup = BeautifulSoup(driver.page_source, "html.parser")
+    driver.quit()
+
+    listings = []
+    for card in soup.select(".car-tile"):
+        title = card.select_one(".car-title")
+        price = card.select_one(".price")
+        title_text = title.get_text(strip=True) if title else "N/A"
+        price_text = price.get_text(strip=True) if price else "N/A"
+        details = " ".join(d.get_text(strip=True) for d in card.select("li"))
+
+        if not any(trim in title_text for trim in TRIMS): continue
+        if not any(color in details for color in COLORS): continue
+
+        listings.append({
+            "title": title_text,
+            "price": price_text,
+            "link": "https://www.carmax.com" + card.a["href"] if card.a else "",
+            "image": card.select_one("img")["src"] if card.select_one("img") else "",
+            "details": details
+        })
+    return listings
 
 # -------------------------------
-# Discord
+# Run All Scrapers
+# -------------------------------
+def run_scraper():
+    all_listings = []
+    for scraper in [scrape_cars, scrape_autotrader, scrape_cargurus, scrape_carmax]:
+        try:
+            results = scraper()
+            all_listings.extend(results)
+        except Exception as e:
+            print(f"❌ Error scraping {scraper.__name__}: {e}")
+    return all_listings
+
+# -------------------------------
+# Discord + SMS (same as before)
 # -------------------------------
 def send_to_discord(listings):
-    if not listings:
-        print("No new listings to send.")
-        return
-
     for car in listings:
         message = {
             "embeds": [{
@@ -107,27 +186,17 @@ def send_to_discord(listings):
             r = requests.post(DISCORD_WEBHOOK, json=message)
             if r.status_code == 204:
                 print("✅ Sent to Discord:", car.get("title"))
-            else:
-                print("⚠️ Discord error:", r.status_code, r.text)
         except Exception as e:
             print(f"❌ Error sending to Discord: {e}")
 
-
-# -------------------------------
-# Twilio SMS
-# -------------------------------
 TWILIO_SID = "MGfdc320f74f891af9faa761043fa1bd13"
 TWILIO_AUTH = "127ab47e2ff64db40a091b3c80647a1e"
-TWILIO_FROM = "+18777300509"   # Your Twilio number
-TWILIO_TO = "+16233098770"     # Your phone number
+TWILIO_FROM = "+18777300509"
+TWILIO_TO = "+16233098770"
 
 client = Client(TWILIO_SID, TWILIO_AUTH)
 
 def send_sms(listings):
-    if not listings:
-        print("No new listings for SMS.")
-        return
-
     for car in listings:
         msg = (
             f"New Porsche 911:\n"
