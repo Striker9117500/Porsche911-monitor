@@ -5,9 +5,31 @@ import time
 
 app = Flask(__name__)
 
+# -------------------------------
 # Store current cars + scrape history
-data_store = {"cars": []}
-scrape_logs = []  # keep track of scrape history
+# -------------------------------
+data_store = {
+    "cars": [
+        {
+            "title": "2019 Porsche 911 Turbo S Coupe AWD [DEMO]",
+            "price": "$124,995",
+            "link": "https://www.cars.com/vehicledetail/example1/",
+            "image": "https://cdn.cars.com/example1.jpg",
+            "details": "Red • Sunroof / Moonroof • Leather Seats",
+            "demo": True
+        },
+        {
+            "title": "2018 Porsche 911 Carrera GTS Coupe RWD [DEMO]",
+            "price": "$94,500",
+            "link": "https://www.cars.com/vehicledetail/example2/",
+            "image": "https://cdn.cars.com/example2.jpg",
+            "details": "Silver • Leather Seats • Premium Audio",
+            "demo": True
+        }
+    ]
+}
+
+scrape_logs = [{"time": time.strftime("%Y-%m-%d %H:%M:%S"), "type": "init", "status": "✅ Loaded demo listings"}]
 
 
 # -------------------------------
