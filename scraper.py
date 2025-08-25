@@ -1,5 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
+from twilio.rest import Client
 
 # -------------------------------
 # Config
@@ -95,3 +96,36 @@ def send_to_discord(listings):
                 print("⚠️ Discord error:", r.status_code, r.text)
         except Exception as e:
             print(f"❌ Error sending to Discord: {e}")
+
+
+# -------------------------------
+# Twilio SMS
+# -------------------------------
+TWILIO_SID = "MGfdc320f74f891af9faa761043fa1bd13"
+TWILIO_AUTH = "127ab47e2ff64db40a091b3c80647a1e"
+TWILIO_FROM = "+18777300509"   # Your Twilio number
+TWILIO_TO = "+16233098770"     # Your phone number
+
+client = Client(TWILIO_SID, TWILIO_AUTH)
+
+def send_sms(listings):
+    if not listings:
+        print("No new listings for SMS.")
+        return
+
+    for car in listings:
+        msg = (
+            f"New Porsche 911:\n"
+            f"{car.get('title', '')}\n"
+            f"Price: {car.get('price', '')}\n"
+            f"{car.get('link', '')}"
+        )
+        try:
+            message = client.messages.create(
+                body=msg,
+                from_=TWILIO_FROM,
+                to=TWILIO_TO
+            )
+            print("✅ SMS sent:", message.sid)
+        except Exception as e:
+            print("❌ Error sending SMS:", e)
