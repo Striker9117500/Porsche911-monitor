@@ -6,8 +6,8 @@
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         h1 { color: #333; }
-        ul { padding-left: 20px; }
-        li { margin-bottom: 6px; }
+        ul { padding-left: 0; list-style: none; }
+        li { margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; background: #fafafa; }
         .logs { margin-top: 30px; padding: 15px; border: 1px solid #ddd; background: #f9f9f9; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { padding: 8px; border: 1px solid #ccc; text-align: left; }
@@ -16,6 +16,8 @@
         .warning { color: orange; }
         .error { color: red; }
         button { margin-top: 15px; padding: 10px 15px; font-size: 14px; cursor: pointer; }
+        img { max-width: 200px; display: block; margin-top: 8px; border-radius: 4px; }
+        .demo-tag { font-size: 12px; background: #ffe066; color: #8a6d00; padding: 2px 6px; border-radius: 3px; margin-left: 8px; }
     </style>
 </head>
 <body>
@@ -25,8 +27,16 @@
         <ul>
         {% for car in cars %}
             <li>
-                <a href="{{ car.url }}" target="_blank">{{ car.title }}</a> - 
-                {{ car.price }} - {{ car.mileage }}
+                <a href="{{ car.link }}" target="_blank"><strong>{{ car.title }}</strong></a>
+                {% if car.demo %}
+                    <span class="demo-tag">[DEMO]</span>
+                {% endif %}
+                <br>
+                <span>{{ car.price }}</span><br>
+                <span>{{ car.details }}</span><br>
+                {% if car.image %}
+                    <img src="{{ car.image }}" alt="Car image">
+                {% endif %}
             </li>
         {% endfor %}
         </ul>
@@ -71,13 +81,3 @@
     <script>
         function manualScrape() {
             fetch("/scrape")
-                .then(res => res.json())
-                .then(data => {
-                    alert("Scrape finished: " + data.status);
-                    location.reload();  // refresh page to show new cars + logs
-                })
-                .catch(err => alert("Error: " + err));
-        }
-    </script>
-</body>
-</html>
