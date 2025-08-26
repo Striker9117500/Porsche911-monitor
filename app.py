@@ -1,5 +1,7 @@
+from dotenv import load_dotenv
+load_dotenv()
 from flask import Flask, render_template, jsonify
-from scraper import run_scraper, send_to_discord
+from scraper import run_all_scrapers, send_to_discord
 from threading import Thread
 import time
 
@@ -54,7 +56,7 @@ def manual_scrape():
     """Manually trigger a scrape via browser/API"""
     log_entry = {"time": time.strftime("%Y-%m-%d %H:%M:%S"), "type": "manual"}
     try:
-        listings = run_scraper()
+        listings = run_all_scrapers()
         new_cars = [car for car in listings if car not in data_store["cars"]]
 
         if new_cars:
@@ -78,7 +80,7 @@ def background_scraper():
     while True:
         log_entry = {"time": time.strftime("%Y-%m-%d %H:%M:%S"), "type": "auto"}
         try:
-            listings = run_scraper()
+            listings = run_all_scrapers()
             new_cars = [car for car in listings if car not in data_store["cars"]]
 
             if new_cars:
