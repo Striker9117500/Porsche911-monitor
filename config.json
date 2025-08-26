@@ -18,6 +18,6 @@
   "colors": ["red", "silver", "grey", "white", "unknown"],
   "clean_title": true,
   "accident_free": true,
-  "discord_webhook_url": "YOUR_DISCORD_WEBHOOK_URL",
-  "discord_bot_token": "YOUR_DISCORD_BOT_TOKEN"
+  "discord_webhook_url": "https://discord.com/api/webhooks/1409010823287803945/2hXaZsB5zlfhCEZouu4YOIoAnpEjoJ5PaH4e6fntbQY1TgZFvtogA5tnGwX84BNJn-6f",
+  "discord_bot_token": "MTQwOTAxMjc2NDI0ODI0ODQzNA.GZq5cZ.XMMg9fwBti9JjJUAHsD2d2LH6vQAw491pZ1Z-Y"
 }
